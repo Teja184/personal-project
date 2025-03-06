@@ -3,12 +3,16 @@ import { apiClient } from "./apiClient"
 
 export interface InventoryResponse {
     invetory_id: number;
-    product_id: number;
     current_stock: number;
     last_updated: string;
-    product_name: string;
-    category_name: string;
-    u_o_m: string;
+    product:{
+        product_id: number;
+        name: string;
+        u_o_m: string;
+    }
+    category:{
+        category_name: string;
+    }
     status: "Low" | "Out of Stock" | "Sufficient";
 }
 
