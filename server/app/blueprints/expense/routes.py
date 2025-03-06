@@ -2,13 +2,14 @@ from flask_restx import Namespace, Resource
 from flask_restx._http import HTTPStatus
 from flask import Response, request,jsonify
 from flask_cors import cross_origin
-from sqlalchemy import select
+from sqlalchemy import select,update
 from flask_login import login_required
 
 from .models import Expense
 from app.blueprints.products.models import Product
 from app.extensions import db
 from .api_model import expense_model
+from app.blueprints.inventory.models import Inventory
 
 expense_ns = Namespace("expense",description="Contains Expense")
 
@@ -23,6 +24,9 @@ expense_ns = Namespace("expense",description="Contains Expense")
 @expense_ns.route("")
 class ExpenseList(Resource):
     #method_decorators = [login_required]
+    @cross_origin(supports_credentials=True)
+    def options(self):
+        return "", HTTPStatus.OK
 
     @cross_origin(origins="*", supports_credentials=True)
     @expense_ns.marshal_with(
@@ -58,11 +62,17 @@ class ExpenseList(Resource):
             total_price=unit_price * purchace_unit,
         )
         db.session.add(exp)
-        db.session.commit()
+        
+        stock_query = (
+            update(Inventory)
+            .where(Inventory.product_id == product_id)
+            .values(current_stock=Inventory.current_stock + purchace_unit)
+        )
+        db.session.execute(stock_query)
 
-        resp = jsonify(exp.to_dict())
-        resp.status_code = 201
-        return resp
+        db.session.commit()
+        result = exp.to_dict()
+        return result, HTTPStatus.CREATED
 
     @cross_origin(origins="*", supports_credentials=True)
     @expense_ns.marshal_with(
